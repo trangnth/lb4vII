@@ -7,6 +7,7 @@ Nhân bản kho git
 ----------------
 
 >$ git clone git://github.com/vnwildman/lb4vII.git
+>
 >$ cd lb4vII
 
 Cài một số phần mềm cần thiết

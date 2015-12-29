@@ -1,0 +1,9 @@
+== Tường lửa iptable
+Do có quá nhiều tài liệu bằng cả tiếng Việt và tiếng Anh nên tôi xin không viết lại nữa. Mời các bạn tham khảo tại:
+
+* OReilly Linux iptables, Pocket Reference (2004)
+* http://tuhocanninhmang.com/giai-phap-mang/bao-mat-mang/tuong-lua-iptable-tren-linux-va-kha-nang-can-thiep-mat-ma-de-bao-mat-thong-tin.htm[Tường lửa IPTABLE trên LINUX và khả năng can thiệp mật mã để bảo mật thông tin]
+* http://www.youtube.com/watch?v=BgSNwplBlyI[Cài đặt và cấu hình Iptable trên CentOS - LAB LPI 2]
+* http://vnexperts.net/bai-viet-ky-thuat/nix/787-cu-hinh-cho-iptables-firewall.html[Cấu hình cho Iptables firewall]
+* http://www.aboutdebian.com/proxy.htm[How To Set Up A Debian Linux Proxy Server]
+

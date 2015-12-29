@@ -1,0 +1,39 @@
+= Học Linux nâng cao =
+Trần Ngọc Quân <vnwildman@gmail.com>
+v1.0, Tháng 12 2015
+
+== Lời nói đầu ==
+
+Quyển sách này được viết với mong muốn người Việt có được tài liệu về hệ điều hành Linux bằng chính ngôn ngữ mẹ đẻ.
+Hiện tại thì nội dung vẫn còn khá sơ sài, tôi sẽ liên tục bổ sung sau.
+
+=== Lời chối từ ===
+
+Nội dung của cuốn sách được viết dựa trên kiến thức cá nhân, do vậy, nó hiển nhiên nó chứa một số quan điểm cá nhân.
+Bạn phải tự chịu trách nhiệm nếu có sai sót do áp dụng những nội dung do đọc từ sách này.
+Phần mềm luôn được cải tiến, do vậy một số lệnh có thể lỗi thời.
+Bạn nên đọc thêm tài liệu chính thức của các phần mềm.
+
+=== Lời cảm ơn ===
+
+Viết sau
+
+=== Ai nên đọc sách này ===
+
+Quyển sách này hướng đến người quản trị máy chủ dùng hệ điều hành Linux.
+
+=== Giấy phép sử dụng ===
+
+Quyển sách này được phát hành dưới các điều khoản của http://gnu.org/licenses/gpl.html[Giấy Phép Công] phiên bản 3 hoặc mới hơn.
+Bạn có toàn quyền sửa đổi, phân phối lại.
+Ở đây *KHÔNG CÓ BẢO HÀNH GÌ CẢ*, với điều kiện được pháp luật cho phép.
+
+=== Giới thiệu nội dung ===
+
+* Lập trình kịch bản Bash
+* Biên dịch gói nguồn
+* Dịch vụ Web
+* Dịch vụ phục vụ tập tin
+* Dịch vụ thư điện tử
+* Cấu hình tường lửa Iptable
+

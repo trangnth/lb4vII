@@ -1,0 +1,20 @@
+== Phụ lục A: Đóng góp ==
+
+Cũng giống như quyển ``Học Linux cơ bản'', mã nguồn của quyển sách được viết bằng http://www.methods.co.nz/asciidoc/[asciidoc] và được quản lý bằng http://git-scm.com/[git]:
+
+	$ git clone git://github.com/vnwildman/lb4vII.git
+
+Nếu bạn muốn đóng góp cho quyển sách này xin vui lòng thực hiện các bước sau:
+
+* Nhân bản kho ``git'' của quyển sách này.
+* Sửa chữa, đính chính sau đó ``commit'' rồi ``push''.
+* Thông báo với tôi để tôi hòa trộn.
+
+Nếu bạn chưa biết dùng git, vui lòng đọc http://www-cs-students.stanford.edu/~blynn/gitmagic/intl/vi/[gitmagic] bằng tiếng Việt.
+
+== Tham khảo ==
+
+[bibliography]
+* http://www.tranngocquan.tk[Blog của tôi]
+* http://www.tldp.org/LDP/nag/nag.html[The Network Administrators' Guide]
+

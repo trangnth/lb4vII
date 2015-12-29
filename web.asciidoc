@@ -1,0 +1,199 @@
+== Dịch vụ Web
+
+Cài đặt https://wiki.debian.org/LaMp[LaMp] (Linux Apache MySQL PHP/Python/Perl).
+Có thể thay https://httpd.apache.org/[Apache] bằng http://nginx.org/[nginx], https://www.lighttpd.net/[lighttpd].
+Thay thế MySQL bằng http://www.postgresql.org/[Postgresql].
+
+=== Apache2
+
+	$ apt-cache shows apache2
+	$ sudo apt-get install apache2
+	$ sudo yum install apache2
+
+Để biết Apache được chia thành những gói nào vui lòng xem:
+
+	$ apt-cache showsrc apache2
+
+
+Trước hết bạn tìm xem phần cấu hình của nó thế nào đã. Ở đây tôi dùng Debian:
+
+-----------------------------
+$ find /etc/ -name '*apache*'
+...
+/etc/apache2
+/etc/apache2/apache2.conf
+...
+# hoặc là dùng lệnh:
+dpkg -L apache2 | grep /etc/
+-----------------------------
+
+Vậy là nó dùng thư mục ``/etc/apche2''. Ta xem tiếp:
+
+-------------------------------------------------
+$ tree /etc/apache2
+...
+|-- sites-available
+|   |-- default
+|   `-- default-ssl
+`-- sites-enabled
+	`-- 000-default -> ../sites-available/default
+...
+-------------------------------------------------
+
+Như vậy là ta thấy được cách tổ chức của phần cấu hình *apache2* trên *Debian* rồi.
+Phần cấu hình cho các *site* sẽ đặt trong thư mục con là *sites-available*.
+Khi cần bật nó thì tạo liên kết mềm đến *sites-enabled*, khi không cần thì chỉ cần xóa liên kết mềm này đi.
+Việc làm này có mục đích là quản trị các máy ảo dễ dàng.
+Điều này có được là vì cấu hình của apache2 hỗ trợ tính năng bao gồm.
+Như vậy chỉ cần đặt các lệnh bao gồm như là ``IncludeOptional sites-enabled/\*.conf'' là thực hiện được mong muốn trên.
+Bạn không cần phải thực hiện nó một cách thủ công bằng lệnh *ln -s* mà *Debian* đã tạo cho bạn một công cụ dòng lệnh rất thuận tiện là:
+
+	$ sudo a2ensite
+	$ sudo a2dissite
+
+Về phần dữ liệu của các trang, theo mặc định chúng lưu tại thư mục ``/var/www/''. Bạn xem cấu hình của ``default''.
+
+Theo mô hình an ninh mặc định, Apache2 không cho phép truy cập bên ngoài /usr/share và /var/www.
+Vì thế nếu muốn lưu trữ ở thư mục khác cần phải cấu hình lại ở ``/etc/apache2/apache2.conf'':
+
+----------------------------------
+<Directory /var/www/>
+	Options Indexes FollowSymLinks
+	AllowOverride None
+	Require all granted
+</Directory>
+----------------------------------
+
+Phần quản lý các modunle cũng tương tự như thế:
+
+	$ tree /etc/apache2
+	...
+	|-- mods-enabled
+	|   |-- alias.conf -> ../mods-available/alias.conf
+	...
+	|-- mods-available
+	|   |-- alias.conf
+	|   |-- alias.load
+	...
+
+Công cụ tương ứng với chúng là:
+
+--------------------------------------------
+$ sudo a2enmod
+$ sudo a2dismod
+$ man a2enmod # để xem trợ giúp về cách dùng
+--------------------------------------------
+
+Thực ra cả bốn lệnh quản trị trên đều là cùng một lệnh:
+
+------------------------------------------------------------------------
+$ ls -l /usr/sbin/a2*
+lrwxrwxrwx 1 root root    7 Th07 24 23:21 /usr/sbin/a2dismod -> a2enmod
+lrwxrwxrwx 1 root root    7 Th07 24 23:21 /usr/sbin/a2dissite -> a2enmod
+-rwxr-xr-x 1 root root 8557 Th07 24 03:56 /usr/sbin/a2enmod
+lrwxrwxrwx 1 root root    7 Th07 24 23:21 /usr/sbin/a2ensite -> a2enmod
+------------------------------------------------------------------------
+
+Và chúng được viết bằng ngôn ngữ kịch bản:
+
+	$ file $(which a2enmod)
+	/usr/sbin/a2enmod: Perl script, ASCII text executable
+
+Ví dụ bạn muốn bật mô-đun rewrite
+
+	$ sudo a2enmod rewrite # bỏ phần đuôi .{conf,load} đi
+	$ sudo nano /etc/apache2/available-mods/default # có thể dùng vi
+
+Đổi ``AllowOverride None'' thành ``AllowOverride all''.
+Khởi động lại dịch vụ:
+
+	$ sudo service apache2 restart
+	$ sudo systemctl reload apache2
+
+=== MySQL ===
+
+MySQL đã bị mua lại nhưng đã có một nhánh khác được dùng để thay thế nếu bạn không muốn dùng nó nữa.
+Đó chính là https://mariadb.org/[MariaDB].
+Bạn nên lên trang web chính thức để biết cách cấu hình kho phần mềm để có thể tải nó về.
+Đây là một ví dụ cụ thể `/etc/apt/sources.list.d/mariadb.list`:
+
+--------------------------------------------------------------------------------------------
+# MariaDB 10.1 repository list - created 2015-12-28 07:09 UTC
+# http://mariadb.org/mariadb/repositories/
+deb [arch=i386,amd64] http://sgp1.mirrors.digitalocean.com/mariadb/repo/10.1/debian sid main
+deb-src http://sgp1.mirrors.digitalocean.com/mariadb/repo/10.1/debian sid main
+--------------------------------------------------------------------------------------------
+
+Ở dòng thứ ba cho biết đoạn cấu hình trên được tạo ở địa chỉ nào rồi phải không?
+Nhưng cần chú ý là địa chỉ này có thể thay đổi theo thời gian.
+Ngoài việc cấu hình bạn còn cần thêm chữ ký điện tử của nhóm phát hành.
+Hãy dùng `apt-key add` để thêm. Hoặc kết hợp với gpg để lấy khóa từ kho khóa:
+
+--------------------------------------------------------------------------------
+$ sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xcbcb082a1bb943db
+---------------------------------------------------------------------------------
+
+Cài đặt bằng lệnh sau:
+
+-------------------------------------
+$ sudo apt-get install mariadb-server
+$ sudo yum install mariadb-server
+-------------------------------------
+
+=== Cài P
+
+Bạn cài một hoặc cả ba cái sau đây:
+
+==== PHP
+
+	$ sudo apt-get install php5 php5-mysql libapache2-mod-php5
+	$ sudo yum install php5 php5-mysql libapache2-mod-php5
+
+Cách quản trị các modunle của php5 trên *Debian* hoàn toàn giống với *apache2*.
+Thư mục cấu hình là ``/etc/php5'' và công cụ là:
+
+	$ ls -l /usr/sbin/php5*
+	lrwxrwxrwx 1 root root    9 Th08 21 17:10 /usr/sbin/php5dismod -> php5enmod
+	-rwxr-xr-x 1 root root 3835 Th08 21 17:10 /usr/sbin/php5enmod
+
+==== Perl
+
+	$ sudo apt-get install perl libapache2-mod-perl2
+
+==== Python
+
+	$ sudo apt-get install python libapache2-mod-python
+
+=== phpMyAdmin
+
+Cài https://www.phpmyadmin.net/[phpMyAdmin] để quản trị MySQL trên nền web rất tiện lợi.
+Nhược điểm cơ bản của việc này là kích cỡ phần cài đặt khá lớn khoảng gần 80Mb và các mô đun cần cài bổ sung.
+Tin vui cho các bạn là phần mềm này đã được tôi dịch sang tiếng Việt.
+
+	$ sudo apt-get install phpmyadmin
+
+Nếu cần ứng dụng nhẹ hơn thì cài http://phpminiadmin.sourceforge.net/[PHP Mini Admin for MySQL]. Tải về từ:
+
+	$ sudo wget https://github.com/osalabs/phpminiadmin/raw/master/phpminiadmin.php \
+	-O /var/www/phpminiadmin.php
+	$ wc /var/www/phpminiadmin.php
+	 1156  2515 32957 /var/www/phpminiadmin.php
+
+=== nginx
+
+Dùng làm dịch vụ web tĩnh hay proxy nghịch
+
+	$ apt-cache showsrc nginx
+	$ sudo apt-get install nginx
+	$ sudo yum install nginx
+
+=== Squid proxy
+
+Đọc các bài viết tham khảo sau:
+
+* http://www.linuxhomenetworking.com/wiki/index.php/Quick_HOWTO_:_Ch32_:_Controlling_Web_Access_with_Squid[Controlling Web Access with Squid]
+* http://cottagedata.com/security/squid/squid.html?book_num=4&chapter_num=1[Squid Proxy Server]
+* http://linuxaria.com/pills/how-to-setup-a-squid-proxy-on-your-debian-linux[How to setup a Squid Proxy on your Debian Linux]
+* https://calomel.org/squid.html[Squid Proxy (Secure, Paranoid and Non-caching)]
+* http://freelinuxtutorials.com/tutorials/squid-proxy-server-tutorial/[Squid Proxy Server Tutorial]
+

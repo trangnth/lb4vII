@@ -1,0 +1,192 @@
+== Lập trình Bash script
+
+=== Biến ===
+
+* Biến hệ thống
+* Biến thường
+* Biến mảng
+
+=== Lệnh đơn giản ===
+
+Soạn ``hello.sh'' có nội dung sau:
+
+	#!/bin/bash
+	echo "Chào thế giới"
+
+Dòng mở đầu có định dạng đặc biệt, nó có tên là dòng http://en.wikipedia.org/wiki/Shebang_%28Unix%29[sha-bang].
+#! có thể coi là một dấu hiệu nhận dạng, hay số http://en.wikipedia.org/wiki/Magic_number_%28programming%29[mầu nhiệm], nó cho phép hệ vỏ tìm được ứng dụng để thực thi văn lệnh này.
+Cụ thể ở đây là ``/bin/bash''.
+Phần văn bản sau dấu # là chú thích và sẽ bị bỏ qua.
+
+Chạy lệnh:
+
+	$ ./hello.sh  # hoặc
+	$ bash hello.sh
+
+=== Điều kiện if ===
+
+	$ help if
+
+Cú pháp của lệnh ``if'' là
+
+	if các_CÂU_LỆNH; then
+		các_CÂU_LỆNH;
+	[ elif các_CÂU_LỆNH; then
+		các_CÂU_LỆNH; ]
+	[ else
+		các_CÂU_LỆNH; ]
+	fi
+
+Điều kiện được cho là đúng khi các câu lệnh thực hiện thành công.
+Nếu dùng ``bash'' thì câu lệnh có thể dùng là hai dấu ngoặc vuông.
+
+Ví dụ sau sẽ kiểm tra xem một tập tin nào đó có tồn tại hay không:
+
+	$ [[ -f /etc/fstab ]]  # lệnh này thành công
+	$ echo $?              # nên trả về là 0
+	0
+	$ [[ -f /etc/fstab2 ]] # tập tin này không tồn tại
+	$ echo $?              # -> lệnh thất bại -> nên trả về 1
+	1
+
+Đây là lệnh có sẵn của bash, nên để xem hướng dẫn thì bạn dùng:
+
+	$ help '[['
+
+Chú ý:
+
+* Lệnh này bắt buộc phải có dấu ngoặc vuông đóng.
+* Nếu là ``dash'' thì chỉ dùng một dấu ngoặc vuông.
+* Lệnh này thường dùng để kiểm tra điều kiện nhưng không bắt buộc phải thế.
+
+Một ví dụ khác là kiểm tra xem người chạy kịch bản có quyền ``root'' hay không:
+
+	# Run as root, of course.
+	if [ "$UID" -ne "0" ]
+	then
+	echo "Must be root to run this script."
+	exit -1
+	fi
+
+
+Một lệnh khác để kiểm tra điều kiện là ``test''. Đây là một lệnh thuộc gói ``coreutils'':
+
+	$ man test # hoặc:
+	$ info coreutils 'test invocation'
+
+Còn một kiểu lệnh tương tự ``if'' khác là:
+
+	$ lệnh1 && lệnh2 || lệnh3
+
+Giải thích: nếu ``lệnh1'' thực hiện thành công thì thực hiện ``lệnh2'' nếu không thì thực hiện ``lệnh3''.
+
+=== Vòng lặp for ===
+
+	$ help for
+
+Cú pháp của lệnh là:
+
+	for TÊN [in CÁC-TỪ ... ;] do
+		các_CÂU_LỆNH;
+	done
+
+Ví dụ:
+
+	$ for i in 1 2 3 4 5 6 7 8 9 ; do
+	echo $i
+	done
+
+Trên thực tế thì thường ta không liệt kê danh sách các từ như ở trên, mà dùng các lệnh như ls, seq.
+Ví dụ như:
+
+	for filename in $(ls *.txt) ; do
+	for i in $(seq 9) ; do
+
+=== Vòng lặp while ===
+
+	$help while
+
+Cú pháp lệnh là:
+
+	while các_CÂU_LỆNH; do
+		các_CÂU_LỆNH;
+	done
+
+=== Lệnh chọn case ===
+
+	$ help case
+
+Cú pháp lệnh là:
+
+	case TỪ in [MẪU [| MẪU]...) các_CÂU_LỆNH ;;]... esac
+
+Ví dụ:
+
+	#!/bin/sh
+	echo "Is it morning? Please answer yes or no"
+	read timeofday
+	case "$timeofday" in
+		yes)  echo "Good Morning";;
+		no )  echo "Good Afternoon";;
+		y  )  echo "Good Morning";;
+		n  )  echo "Good Afternoon";;
+		*  )  echo "Sorry, answer not recognized";;
+	esac
+
+Bạn thấy rằng lệnh ``case'' được kết thúc bằng thẻ ``esac'',
+nhìn có vẻ khó hiểu nhưng đây thực chất là một kiểu chơi chữ, là từ viết theo thứ tự ngược lại của chính tên lệnh.
+
+=== Hàm ===
+
+Bạn có thể viết các hàm để sử dụng trong lập trình Shell Scripts.
+Việc sử dụng hàm sẽ làm cho công việc lập trình trở nên dễ dàng hơn trong quản lý và khai thác.
+Khai báo một hàm cũng khá đơn giản.
+Định nghĩa một hàm theo cú pháp như sau:
+
+	function tên_hàm ( )
+	{
+		lệnh 1
+		lệnh 2
+		..
+		...
+		lệnh N
+		return
+	}
+
+Ví dụ viết một hàm in ra câu chào:
+
+	#!/bin/sh
+	# Định nghĩa hàm hello
+	function hello()
+	{
+		echo "Hello World!"
+		return 0
+	}
+	# gọi hàm để sử dụng
+	hello
+
+Bạn thấy đấy, hàm trên không sử dụng tham số.
+Nhưng bạn muốn sử dụng tham số.
+Hãy xét ví dụ sau:
+
+	#!/bin/sh
+	# Định nghĩa hàm thamso
+	function thamso()
+	{
+		echo "Tham số thứ nhất là: $1"
+		echo "Tham số thứ hai là: $2"
+		echo "Tham số thứ ba là: $3"
+		return 0
+	}
+	# gọi hàm để sử dụng
+	thamso -o thử "giá trị"
+	#sẽ cho ra kết quả:
+	Tham số thứ nhất là: -o
+	Tham số thứ hai là: thử
+	Tham số thứ ba là: giá trị
+
+=== Xem thêm ===
+Nếu bạn cần học cao hơn nữa về vấn đề này, vui lòng xem:
+
+* http://tldp.org/LDP/abs/html/index.html[Advanced Bash-Scripting Guide]
+

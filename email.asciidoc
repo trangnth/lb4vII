@@ -1,0 +1,233 @@
+== Máy phục vụ thư điện tử
+Phần này hướng dẫn dùng cặp đôi Postfix và Dovecot.
+
+http://en.wikipedia.org/wiki/Postfix_%28software%29[Postfix] là một MTA (Mail Transport Agent), được viết bởi Wietse Venema khi ông đang làm việc ở trung tâm nghiên cứu T. J. Watson của IBM. Đặc điểm của Postfix: dễ quản lý, nhanh, an toàn. Chỉ cần một server với hardware thông thường, Postfix có thể chuyển giao hàng triệu email một ngày . Bài viết này giới thiệu cách dùng Postfix để dựng một mail server trong Linux.
+
+=== Cài đặt
+
+Thông thường thì chúng ta chỉ cần cài đặt các gói được biên dịch sẵn.
+
+==== Debian
+
+ $ sudo apt-get install postfix dovecot-imapd dovecot-pop3d
+ $ dpkg -l postfix dovecot\*
+
+==== Rpm
+
+ $ sudo yum install postfix dovecot
+ $ rpm -q dovecot postfix
+ dovecot-2.2.12-1.fc20.i686
+ postfix-2.10.3-1.fc20.i686
+
+=== Cấu hình
+
+==== Cơ bản
+
+Postfix có một số lượng thuộc tính để cấu hình rất lớn, khoảng hơn 800. Nhưng ở
+mức này, chúng ta chỉ cần quan tâm đến việc cấu hình nó ở mức đơn giản nhất.
+
+Tắt dịch vụ sendmail và không cho nó khởi động cùng hệ điều hành:
+
+ $ sudo service sendmail stop
+ $ sudo chkconfig sendmail off
+ $ sudo update-rc.d -f sendmail remove # họ Debian
+
+Cũng có thể gỡ bỏ nó đi:
+
+ $ sudo yum remove sendmail
+ $ sudo apt-get remove sendmail
+
+Cần chú ý là không phải lúc nào cũng là sendmail, một số hệ điều hành dùng Exim, nhưng việc tắt nó đi thì cũng tương tự như trên.
+
+Bật Postfix khởi động cùng hệ điều hành:
+
+ $ sudo update-rc.d postfix defaults start # họ Debian
+ $ sudo systemctl enable postfix           # dùng với systemd
+ $ sudo chkconfig postfix on               # họ Redhat
+ $ sudo service postfix start              # khởi động dịch vụ
+ $ sudo systemctl start postfix
+
+Để tìm các tập tin cấu hình bạn dùng lệnh:
+
+ $ rpm -qc postfix
+ $ dpkg -L postfix | grep /etc     # họ Debian
+ $ rpm -ql postfix | grep /etc
+ $ rpm -ql postfix | grep examples # tìm mẫu
+ $ rpm -ql postfix | grep README
+
+Hai tập tin quan trọng mà bạn cần quan tâm là:
+
+ /etc/postfix/main.cf   # chứa thông tin cấu hình chính
+ /etc/postfix/master.cf # chứa các thông tin về dịch vụ smtpd
+
+Ngoài việc sửa trực tiếp tập tin cấu hình, Postfix còn cung cấp công cụ để xem và sửa tập tin cấu hình.
+
+	$ postconf
+	$ man postconf
+
+Thêm các cấu hình:
+
+	 $ postconf -e ""
+
+Cấu hình tên máy, tên miền
+
+	 $ sudo postconf -e "myhostname = mail.mydomain.com"
+	 $ sudo postconf -e "mydomain = mydomain.com"
+
+đây thực chất là hai biến dùng cho phần cấu hình:
+
+ $ sudo postconf -e 'mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain'
+
+Cần chú ý là tên miền và tên máy cần phải được phân giải trước, nếu cài đặt thử
+nghiệm hay chưa có tên miền thì bạn có thể đặt chúng trong tập tin:
+
+	/etc/hosts # ví dụ:
+	192.168.1.100	mail.mydomain.com
+	192.168.1.100	mydomain.com
+
+Tên giao diện, chấp nhận tất cả
+
+ 	$ sudo postconf -e "inet_interfaces = all"
+
+Cấu hình hộp thư, ở đây ta dùng Maildir, các thư sẽ ở trong các thư mục
+
+ 	$ sudo postconf -e "home_mailbox = Maildir/"
+
+Tiếp theo là cấu hình việc xác thực. Dùng lệnh postconf như trên để cấu hình các thông tin sau đây
+
+	smtpd_sasl_auth_enable = yes
+	smtpd_recipient_restrictions = permit_mynetworks,permit_sasl_authenticated,reject _unauth_destination
+	smtpd_sasl_authenticated_header = yes
+	broken_sasl_auth_clients = yes
+	smtpd_sasl_type = dovecot
+	smtpd_sasl_path = private/auth
+
+
+Ở đây mỗi tài khải email sẽ ứng với một tài khoản user trên linux và thư mục chứa mail sẽ là /home/tentaikhoan/Maildir
+
+
+Cũng giống như Postfix, cũng có ứng dụng dòng lệnh cho việc cấu hình Dovecot
+
+	$ sudo doveconf -n
+
+Tiếp tục mở file cấu hình về chứng thực của Dovecot /etc/conf.d/auth-system.conf.ext thêm hoặc chỉnh sửa như sau:
+
+	auth default {
+	mechanisms = plain login
+	passdb {
+	  driver = pam
+	}
+
+	userdb passwd {
+	}
+
+/etc/dovecot/conf.d/10-master.conf
+
+	socket listen {
+	client {
+	path = /var/spool/postfix/private/auth
+	mode = 0660
+	user = postfix
+	group = postfix
+		}
+	}
+	}
+
+Có thể xem thêm tại http://wiki2.dovecot.org/QuickConfiguration[QuickConfiguration]. Hay xem trang tra cứu của từng gói:
+
+	$ rpm -ql postfix | grep man5
+	$ dpkg -L dovecot | grep man5 # Debian
+
+Và bước cuối cùng là khởi động lại dịch vụ:
+
+	$ sudo systemctl restat postfix # fedora
+	$ sudo systemctl restat dovecot
+
+	$ sudo service postfix restart # Debian cũ
+	$ sudo service dovecot restart
+
+==== Gỡ lỗi
+
+Nếu việc cài đặt diễn ra không như ý bạn, đừng nản lòng, hãy theo một số cách sau:
+
+===== Bật ghi nhật ký
+
+Trước hết bạn cần có syslog trong hệ thống:
+
+	$ sudo apt-get install syslog-ng
+	$ sudo yum install syslog-ng
+
+Thêm tham số sau vào postfix
+
+	smtp_tls_loglevel = 3
+
+vào dovecot:
+
+	debug_log_path = /var/log/dovecot/debug.log
+
+hoặc:
+
+	syslog_facility = mail
+
+Sau đó dùng tail, more hay cat v.v.. để đọc.
+
+	$ tail /var/log/maillog
+
+===== Xem thông tin khởi động dịch vụ
+
+	$ service postfix status # hệ thống cũ
+	$ systemctl status postfix
+	$ sudo journalctl -u postfix
+
+Làm tương tự với dịch vụ *dovecot*.
+
+===== So sánh với các tham số mặc định
+
+Để xem so với các giá trị mặc định để biết bạn đã sửa những gì, hãy lệnh:
+
+	$ postconf -n
+	$ doveconf -n
+
+=== Sử dụng webmail
+
+Có một số ứng dụng miễn phí mà bạn có thể cài đặt để duyệt thư trên trình duyệt Web.
+
+* http://squirrelmail.org/[squirrelmail]
+* http://roundcube.net/[roundcube]
+* http://www.afterlogic.org/[AfterLogic]
+* http://rainloop.net/[Rainloop]
+
+=== Quản trị
+
+Việc quản lý các tài khoản thư còn tùy thuộc vào bạn cấu hình như thế nào, chẳng
+hạn như bạn quản lý các tài khoản như bản Linux tiêu chuẩn hay dùng cơ sở dữ liệu.
+
+==== Dùng dòng lệnh
+
+Nếu quản trị các tài khoản theo kiểu thông thường, thì bạn có thể quản trị thông
+qua ssh, bằng các lệnh cơ bản như:
+
+* adduser, deluser, useradd, userdel: thêm, bớt tài khoản
+* passwd: đổi mật khẩu
+* vi, sudo: trình biên soạn để chỉnh sửa cấu hình
+
+==== Dùng giao diện đồ họa
+
+* http://sourceforge.net/projects/postfixadmin/[postfixadmin]
+* http://www.ispconfig.org/[ISPConfig]
+
+=== Tham khảo thêm
+
+* http://www.postfix.org/[Trang chủ Postfix]
+* http://wiki2.dovecot.org/HowTo
+* https://help.ubuntu.com/community/Postfix
+* https://help.ubuntu.com/community/Dovecot
+* http://wiki.centos.org/HowTos/postfix
+* http://docs.fedoraproject.org/en-US/Fedora/14/html/Deployment_Guide/ch-email.html
+* http://www.vmadmin.co.uk/linux/44-redhat/142-dovecotinstall
+* https://www.digitalocean.com/community/articles/how-to-set-up-a-postfix-e-mail-server-with-dovecot[How To Set Up a Postfix E-Mail Server with Dovecot]
+* https://www.digitalocean.com/community/tutorials/how-to-configure-a-mail-server-using-postfix-dovecot-mysql-and-spamassassin[How To Configure a Mail Server Using Postfix, Dovecot, MySQL, and SpamAssassin]
+* http://ngorua.wordpress.com/2011/12/08/cai-d%E1%BA%B7t-mail-server-tren-centos-dung-postfix-dovecot/[mail-server-tren-centos-dung-postfix-dovecot]
+* http://goccay.vn/showthread.php?662-Cai-dat-mail-server-voi-Postfix[Cai-dat-mail-server-voi-Postfix]
+* https://www.linux.com/learn/tutorials/308917-install-and-configure-a-postfix-mail-server[Install and Configure a Postfix Mail Server]
+

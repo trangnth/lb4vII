@@ -1,0 +1,266 @@
+== Dịch vụ file
+
+=== FTP
+Có các gói phần mềm hay được dùng là vsftpd, proftpd hay Pure-FTPd. Tôi chỉ xin giới thiệu về vsftpd.
+
+==== Cài đặt vsftpd
+
+	$ sudo apt-get install vsftpd
+	$ sudo yum install vsftpd
+
+==== vsftpd theo giao thức ftp
+Đây là giao thức không được mã hóa. Tùy theo việc bạn cài đặt vsftpd từ mã nguồn hay từ binary mà việc cấu hình có thể nhiều hay ít. Để cấu hình nó bạn cần làm một số điều sau:
+
+Tạo user có tên ftp, thêm user nobody nếu hệ điều hành chưa có:
+
+	$ useradd nobody
+	$ groupadd ftp
+	$ mkdir /var/ftp/ # thư mục cho tài khoản công cộng
+	$ useradd -d /var/ftp -g ftp ftp
+
+Tạo thư mục
+
+	$ mkdir /usr/share/empty
+	$ chown root.root /var/ftp
+	$ chmod og-w /var/ftp # bỏ quyền ghi
+
+Cấu hình và chạy thử. Trong file ``/etc/vsftpd.conf'' thêm dòng sau để chạy:
+
+	anonymous_enable=YES
+	local_enable=YES
+	listen=YES
+
+Chạy thử:
+
+	sudo /usr/sbin/vsftpd &
+	[1] 2104
+
+Xem thử daemon đã chạy chưa bằng lệnh:
+
+	$ ps -A | grep vsftpd
+
+Giờ là lúc dùng lệnh ftp để thử
+
+Để chạy dưới xinetd, bạn đặt tùy chọn listen=NO trong vsftpd.conf và thêm đoạn sau vào xinetd.conf:
+
+	service ftp
+	{
+		socket_type             = stream
+		wait                    = no
+		user                    = root
+		server                  = /usr/sbin/vsftpd
+		nice                    = 10
+		disable                 = no
+	}
+
+Chú ý: Nếu bạn chạy dưới "inetd", bạn hãy sửa /etc/inetd.conf và thêm vào dòng sau:
+
+	ftp stream tcp nowait root /usr/sbin/tcpd /usr/sbin/vsftpd
+
+Tự chạy khi khởi động Linux. Bạn cần tạo script khởi động (nếu chưa có) và đặt tại ``/etc/init.d/'' sau đó chạy lệnh ``update-rc.d''.
+
+==== vsftpd thông qua ssl
+Chú ý: nếu bạn dịch vsftpd từ mã nguồn, bạn phải chỉnh sửa đôi chút theo hướng dẫn trong file INSTALL trước khi dịch, và phải cài gói Openssl trước.
+
+Tạo chứng thực
+
+	$ openssl req -x509 -nodes -days 365 -newkey rsa:1024 -keyout /etc/vsftpd/vsftpd.pem -out /etc/vsftpd/vsftpd.pem
+
+Cấu hình vsftpd bằng cách biên tập file ``/ect/vsftpd.conf''. Bạn thêm một số dòng quan trọng liên quan đến ssl sau:
+
+	ssl_enable=YES
+	allow_anon_ssl=NO
+	force_local_data_ssl=NO
+	force_local_logins_ssl=NO
+	rsa_cert_file=/etc/vsftpd/vsftpd.pem
+
+Nếu ngại thì bạn chỉ cần quan tâm đến hai dòng: dòng đầu và dòng cuối mà thôi.
+Để có thông tin chi tiết hơn hãy đọc ``vsftpd.conf'' manpage.
+
+Chạy thử giống như ở phần trên:
+
+	$ sudo service vsftpd start
+
+Chú ý: Các user dùng để truy cập chính là các user của hệ điều hành (dùng PAM linux).
+Nếu gặp lỗi bạn xem xét các lỗi được thông báo cũng như đọc trong log hệ thống:
+
+	$ tail /var/log/syslog
+
+==== Giao thức sftp
+Đây là giao thức ftp thông qua ssh. Nó đã được bao gồm trong sshd. Vui lòng xem thêm ở phần ssh.
+
+	$ grep sftp  /etc/ssh/sshd_config 
+	Subsystem sftp /usr/lib/openssh/sftp-server
+
+=== NFS
+nfs là một giao thức khá cũ nhưng do nó đơn giản và được hỗ trợ tốt của Linux nên vẫn được sử dụng. Nó thường được dùng làm ổ đĩa mạng và để cài hệ điều hành Linux qua mạng với thêm sự hỗ trợ từ PXE.
+
+==== Cài đặt
+Tuy nfs nằm trong kernel nhưng theo mặc định thì phần lớn các bản phân phối Linux dành cho Desktop không cài sẵn, chỉ có bản server là thường sẵn có. Việc cài đặt cũng tương đối đơn giản:
+
+	# Fedora
+	$ sudo yum install nfs-utils
+	# Debian
+	$ sudo apt-get install nfs-kernel-server nfs-common
+
+==== Cấu hình
+nfs sử dụng file cấu hình chính là ``/etc/exports''. Ngoài ra còn các file cấu hình dùng chung với các dịch vụ mạng khác là ``/etc/hosts.deny'' và ``/etc/hosts.allow'' để điều khiển việc truy cập.
+
+	$ nano /etc/exports
+	/home/fedora	129.168.1.3(ro,sync)	myclient(rw,sync)
+	/var/nfs/pub	*(ro,sync)
+
+Cú pháp của nó khá đơn giản
+
+* Cột thứ nhất là tên thư mục cần chia sẻ
+* Cột thứ hai bao gồm tên (hoặc địa chỉ) các máy khách được phép truy cập theo sau là các tùy chọn
+
+Xem thêm manpage để có thêm chi tiết:
+
+	$ man exports
+
+Sử dụng dòng lệnh
+
+	$ sudo exportfs -v 192.168.1.0/24:/var/tftpboot/fedoraDVD
+	$ man exportfs # để có thêm chi tiết
+
+==== Khởi động dịch vụ nfs
+
+	$ sudo service nfs start # khởi động
+	$ sudo service nfs reload # tải lại exports
+	# Ubuntu
+	$ sudo /etc/init.d/nfs-kernel-server start
+	$ sudo service nfs-kernel-server reload
+
+==== Sử dụng trên máy khách
+Nếu là máy chạy Linux thì cũng khá đơn giản vì sử dụng lệnh mount quen thuộc
+
+	$ sudo mkdir /mnt/nfsdir # tạo thư mục để gắn
+	$ sudo mount.nfs 192.168.1.3:/home/fedora /mnt/nfsdir # hay
+	$ sudo mount -t nfs 192.168.1.3:/home/fedora /mnt/nfsdir
+
+Nếu muốn gắn tự động khi khởi động bạn hãy thêm dòng sau vào ``/etc/fstab''
+
+	nfs-server:/home/fedora /mnt/nfs_share nfs rw,rsize=8192,wsize=8192,timeo=14,intr
+
+Để sử dụng trên Windows, bạn có thể sử dụng một số phần mềm, sau đây là hai trong số chúng:
+
+* Cách thứ nhất là sử dụng http://support.microsoft.com/kb/324055[Windows Services for UNIX]
+* Cách khác là sử dụng http://code.google.com/p/nekodrive/[nekodrive]
+
+==== Xem thêm
+
+* http://kythuatmaytinh.wordpress.com/2011/03/03/nfs-simple-how-to/
+* http://nfs.sourceforge.net/nfs-howto/
+* https://help.ubuntu.com/10.04/serverguide/C/network-file-system.html
+* https://help.ubuntu.com/community/SettingUpNFSHowTo
+* https://help.ubuntu.com/community/NFSv4Howto
+* http://fconfig.wordpress.com/2006/08/17/setting-up-a-fedora-nfs-server/
+
+=== Samba
+
+Với sự thống trị của Windows trên dòng máy tính cá nhân, việc chia sẻ tài nguyên giữa các máy tính chạy hệ điều hành khác với nó là cần thiết. Thế mới thấy "Thế giới không phẳng", cái bóng của Windows quá lớn. Gói phần mềm giúp Linux có thể thực hiện điều này là Samba. Nó sử dụng giao thức của hệ điều hành Windowns.
+
+==== Cài đặt
+Samba gồm hai phần là client và server. Phần lớn các bản Desktop có cài sẵn client và bản server thì cài sẵn cả hai.
+
+	$ sudo aptitude install libcupsys2 samba samba-common
+
+==== Cấu hình
+Thông thường file cấu hình cho nó thường ở ``/etc/samba/smb.conf'' hay ``/usr/local/samba/lib/smb.conf''. Bạn có thể tìm chính xác nó ở đâu bằng lệnh:
+
+	$ smbd -b | grep smb.conf
+
+Cấu hình cho samba bao gồm hai phần: một phần cho daemon và các tài khoản.
+Nhìn chung thì cấu hình cho samba gồm hai chương, tên của chúng được đặt trong cặp dấu ngoặc vuông: phần cấu hình chung [global] và cấu hình các thư mục cần sử dụng.
+
+	[global]
+	workgroup = WORKGROUP
+	server string = Samba Server Version %v
+	...
+	security = share
+	passdb backend = tdbsam
+	Phần Share, đây là phần cấu hình thư mục nào cần chia sẻ, máy in nào được sử dụng v.v..
+	[homes]
+		comment = Home Directories
+		browseable = no
+		writable = yes
+		valid users = %S
+
+	[printers]
+		comment = All Printers
+		path = /var/spool/samba
+		browseable = no
+		printable = yes
+
+Chú ý: [homes] ở đây cũng là một chương đặc biệt.
+
+Bạn sẽ thấy một số ký tự có sử dụng dấu %, đây là các biến, do samba điền vào cho chúng ta. Xem chi tiết cách cấu hình trong manpage:
+
+	$ man smb.conf
+
+Nhìn chung, cú pháp cấu hình cho samba cũng tương đối đơn giản. Nếu là bản Desktop bạn có thể chia sẻ một thư mục nào đó một cách dễ dàng trong cửa sổ Nautilus.
+
+Kiểm tra file cấu hình:
+
+	$ testparm /etc/samba/smb.conf
+	$ testparm -s smb.conf.master > smb.conf
+
+Nếu ổn thì khởi động samba:
+
+	$ sudo /etc/init.d/smb start # khởi động samba-server
+	# hay:
+	$ sudo service smb start
+	#Nếu samba đã khởi động rồi bạn chỉ muốn load lại conf:
+	$ sudo service smb reload
+	$ ps -A | grep smbd # kiểm tra xem nó hoạt động chưa
+	$ smbclient -L yourhostname # mật khẩu để trống
+
+Trong cửa sổ của Explore của Windows hãy gõ:
+
+	\\yourhostname\
+
+Ở bước này bạn chỉ có thể thử. Muốn đăng nhập vào hệ thống, bạn cần thực hiện bước tiếp sau
+
+==== Quản trị các tài khoản
+samba-server không sử dụng chung tài khoản với Linux nhưng bạn có thể tạo các tài khoản có cùng hay khác tên và ánh xạ nó đến tài khoản trên Linux, mật khẩu bạn cũng phải đặt mới. Bảng ánh xạ bạn có thể tìm thấy tại:
+
+	$ more /etc/samba/smbuser
+	$ smbd -b | grep PRIVATE_DIR
+	PRIVATE_DIR: /var/lib/samba/private
+
+Thư mục này lưu giữ thông tin người dùng
+
+	$ ls /var/lib/samba/private
+	passdb.tdb  secrets.tdb
+	$ smbd -b | grep LOCKDIR
+
+Thêm tài khoản vào:
+
+	$ smbpasswd -a fedora
+	# các tài khoản cần có sẵn trong hệ điều hành,
+	# nếu không hãy sử dụng useradd để thêm
+	# để đổi password bạn chỉ cần bỏ tùy chọn -a đi.
+	$ smbpasswd fedora
+
+Giờ thì trong cửa sổ của Explore của Windows bạn đã có thể truy cập vào tài khoản của mình:
+
+	\\yourhostname\your_samba_account
+
+==== Quản lý samba bằng SWAT
+Ứng dụng này hoạt động trên nền Web nên rất trực quan.
+
+==== Một số dịch vụ mà samba phụ thuộc
+* nmbd: daemon này xử lý và phân giải các tên đã được đăng ký. Đây là phương tiện để duyệt trên mạng. Dịch vụ này cần được khởi động trước smb.
+* smbd: đây là dịch vụ chính, nó dùng để chia sẻ tập tin và máy in.
+* winbindd: giúp Linux tham gia vào Windows NT4 hay ADS domain.
+
+==== Xem thêm
+* http://www.samba.org/samba/docs/Samba-Guide.pdf
+* http://www.samba.org/samba/docs/Samba-HOWTO-Collection.pdf
+* http://www.samba.org/samba/docs/using_samba/toc.html
+* http://khigiacmoquayve.narod.ru/vietbook/linux/samba/index.html
+* http://www.brennan.id.au/18-Samba.html
+* http://www.samba.org/samba/docs/man/Samba-HOWTO-Collection/install.html
+* http://www.linuxhomenetworking.com/wiki/index.php/Quick_HOWTO_:_Ch10_:_Windows,_Linux,_and_Samba
+

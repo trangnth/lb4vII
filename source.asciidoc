@@ -1,0 +1,65 @@
+== Biên dịch gói nguồn
+Nếu bạn là người cài phần mềm chỉ với mục đích sử dụng thì không cần đọc bài này. Bài này muốn hướng tới những người muốn tìm hiểu sâu hơn về cách cài đặt phần mềm cũng như muốn thử nghiệm các phần mềm mới nhất hay chưa có trong kho của các bản phân phối Linux và muốn các thành phần đã được lược bỏ đi trong các gói dịch sẵn, chẳng hạn như thư viện, header file hay man page.
+
+=== Phương pháp cài đặt nguyên sơ nhất
+Đó là dịch và cài thủ công.
+Giả sử bạn có tệp tin mã nguồn main.c có nội dung sau:
+
+	#include <stdio.h>
+	int main (){
+	printf("Hello world!\n");
+	return 0;
+	}
+
+Bạn dịch nó bằng gcc:
+
+	$ gcc -Wall -o hello main.c
+	$ ./hello # chú ý là cần chỉ định cả thư mục là ./ vì Linux chỉ chạy các lệnh trong PATH thôi
+	Hello world!
+
+Sau đó thì chép nó vào thư mục cần
+
+	$ cp hello /usr/bin/
+
+Chạy nó bằng lệnh:
+
+	$ hello
+
+=== Cài đặt bằng make
+Tiện ích make giúp bạn quản lý được mã nguồn trong lúc dịch khi phát triển phần mềm.
+Nó dựa trên quy tắc phụ thuộc trong file Makefile, và chỉ dịch khi mã nguồn thay đổi.
+Đọc bài hướng dẫn ngắn về make là http://www.cse.hcmut.edu.vn/~c506006/files/Slides/Makefile%20Utility.pdf[Makefile Utility].
+
+Ví dụ dịch gói vsftpd:
+
+	$ wget https://security.appspot.com/downloads/vsftpd-2.3.4.tar.gz
+	$ tar xvfz vsftpd-2.3.4.tar.gz
+	$ cd vsftpd-2.3.4
+	$ make # dịch
+	$ make install # cài đặt phần mềm
+
+=== Cài đặt các gói có sử dụng autotools.
+Phần lớn các phần mềm nguồn mở đều sử dụng công cụ này để phát hành.
+Nó giúp các gói phần mềm được dịch và cài đặt theo một cách thống nhất, dễ dàng và tương thích với nhiều hệ điều hành khác nhau.
+Đọc hướng dẫn về http://www.lrde.epita.fr/~adl/autotools.html[autotools].
+Dạng thức chung cơ bản nhất là:
+
+* Lấy mã nguồn về.
+* Giải nén.
+* Chạy lệnh ./configure để tạo ra file Makefile dùng cho tiện ích make.
+* Bây giờ ta có file Makefile nên bạn chạy lệnh make && make install để thực hiện công việc còn lại.
+
+Ví dụ: Bạn dịch gói nginx như sau
+
+	$ tar xvfz nginx-1.1.0.tar.gz
+	$ cd nginx-1.1.0
+	$ ./configure --without-http_rewrite_module --without-http_gzip_module
+	$ make
+	$ make install
+	$ /usr/local/nginx/sbin/nginx # chạy thử
+
+[NOTE]
+Để biết chi tiết các tham số dành cho việc configure bạn chạy ./configure --help và cần đọc các file có tên như: INSTALL, README v.v..
+Một số gói phần mềm đã chạy lệnh configure theo các tham số mặc định và tạo ra sẵn Makefile nên bạn có hai lựa chọn là chạy make ngay hoặc là chạy ./configure với các tham số theo ý bạn.
+Với một số gói quan trọng, bạn cần tải cả chữ ký về để xác thực.
+

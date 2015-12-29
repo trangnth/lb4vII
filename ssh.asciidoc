@@ -1,0 +1,133 @@
+== Hệ vỏ bảo mật ssh
+Để đăng nhập từ xa để điều khiển máy chủ, người ta thường dùng ssh để truy cập.
+Sau khi đăng nhập vào hệ thống, người dùng có thể gõ lệnh ở đây giống như ở máy nội bộ.
+
+=== Cài đặt
+
+	# apt-get install sshd
+	# yum install sshd
+
+=== Cấu hình máy dịch vụ
+Thư mục cấu hình nằm tại ``/etc/ssh/''. Thư mục này chứa cấu hình cho cả máy khách và máy dịch vụ. Tập tin cấu hình cho máy phục vụ là ``sshd_config(5)''. Ngoài ra nó chứa các khóa riêng và công của máy chủ.
+Khi cài đặt, nếu máy chưa có khóa riêng thì sẽ được tự động tạo ra.
+
+	$ ls /etc/ssh/
+	moduli       ssh_host_dsa_key      ssh_host_ecdsa_key.pub
+	ssh_config   ssh_host_dsa_key.pub  ssh_host_rsa_key
+	sshd_config  ssh_host_ecdsa_key    ssh_host_rsa_key.pub
+
+Dùng *vi*, *nano* để sửa ``/etc/ssh/sshd_config'' một số nội dung sau:
+
+	# Cho phép dùng khóa công để đăng nhập
+	PubkeyAuthentication yes 
+
+	# Cho phép dùng ngôn ngữ bản địa
+	AcceptEnv LANG LC_*
+
+Ngoài ra bạn có thể cấu hình thêm một số thứ khác như có cho đăng nhập bằng mật khẩu hay không? cho phép mật khẩu rỗng hay không? Có cho root đăng nhập hay không? v.v.. bằng cách xem
+
+	man 5 sshd_config
+
+=== Cấu hình máy khách
+Thư mục cấu hình nằm tại ``~/.ssh/''.
+Nó còn chứa khóa công và riêng của người dùng, thông tin mã vân tay của các máy phục vụ đáng tin cậy (``known_hosts'') v.v..
+Bình thường bạn không cần làm gì cả.
+
+=== Tạo khóa RSA và DSA sử dụng OpenSSH ===
+
+OpenSSH hỗ trợ quá trình xác thực bằng khóa công. Đây là phương pháp xác thực rất an toàn. SSH được dùng phổ biến trong các ứng dụng yêu cầu bảo mật cao như quản lý máy chủ, tạo đường hầm để các giao thức khác đi qua chẳng hạn như FTP over SSH, Git v.v.. Tạo ra một cặp khóa để sử dụng cho giao thức này, bạn hãy sử dụng ssh-keygen và làm theo các bước sau.
+Xem trợ giúp:
+
+	$ssh-keygen
+
+Ở đây tôi xin dịch một số tùy chọn hay dùng:
+
+	# -f: tên tập tin chứa khóa riêng
+	# -t: kiểu rsa hay dsa
+	# -b: số bít 1024 hay 2048 v.v..
+	# -C: tạo ghi chú cho khóa
+	# -p: thay đổi passphrase cho khóa riêng
+	# -y: đọc khóa riêng và in khóa công ra
+
+Ví dụ tạo khóa RSA 2048 bít:
+
+	$ssh-keygen -t rsa -b 2048 -C "RSA 2048 for all"
+
+Tạo khóa công từ khóa riêng
+
+	ssh-keygen -y -f yourkeyfile > pubkeyfile.pub
+
+Ví dụ tạo khóa DSA 1024 bít:
+
+	$ssh-keygen -t dsa -b 1024 -C "DSA 1024 for all"
+
+Đổi mật khẩu cho khóa riêng:
+
+	# đổi mật khẩu cho khóa riêng ~/.ssh/id_rsa
+	$ssh-keygen -p -f ~/.ssh/id_rsa
+
+[CAUTION]
+ssh mặc định sử dụng khóa riêng với tên là id_rsa, vậy nên để tránh sai sót khi kết nối bạn nên sử dụng tên mặc định. Nếu bạn muốn chỉ định từng máy chủ sử dụng các khóa khác nhau thì bạn phải cấu hình cho SSH. Thường thì tập tin cấu hình cho SSH mặc định là ``~/.ssh/config'' trong Windows và ``/etc/ssh/ssh_config'' trong Ubuntu.
+
+=== Kết nối
+
+	$ ssh tài_khoản@tên_máy_phục_vụ
+
+Để dùng phương thức chứng thực bằng khóa công, bạn dùng lệnh sau:
+
+	$ ssh-copy-id -i ~/.ssh/id_rsa.pub tài_khoản@tên_máy_phục_vụ
+
+=== Dùng ssh làm đường hầm kết nối ===
+Có thể dùng ssh làm đường hầm để các kết nối mạng khác đi qua.
+
+=== Bảo mật cho máy chủ OpenSSH
+sshd sử dụng file ``/etc/ssh/sshd_config'' để lưu giữ các thông tin cấu hình của mình. Tất nhiên là vị trí này còn phụ thuộc vào các tùy chọn khi dịch. Tệp tin cấu hình sẽ ở vị trí nào là do tùy chọn ``--configdir=/DIR'' khi chạy lệnh ``./configure'' lúc dịch quyết định. Để xem chi tiết về các thuộc tính cần cấu hình sử dụng lệnh:
+
+	$ man sshd_config
+
+Không cho đăng nhập với root
+Khi cần thì sử dụng lệnh sudo để thi hành các lệnh yêu cầu quyền root.
+
+	PermitRootLogin no
+
+Đổi cổng truy cập
+Cách này tuy không hiệu quả lắm nhưng cũng có thể cân nhắc để sử dụng.
+
+	Port 22
+
+Chỉ cho phép sử dụng SSH phiên bản 2
+
+	Protocol 2
+
+Không cho phép đăng nhập sử dụng mật khẩu chỉ sử dụng rsa
+
+	PasswordAuthentication no
+
+Giới hạn số lần đăng nhập sai
+
+	MaxAuthTries 3
+
+Chỉ cho phép các users và groups nhất định được truy cập
+Các thuộc tính liên quan là DenyUsers, AllowUsers, DenyGroups, và cuối cùng là AllowGroups. Danh sách users và groups cho các thuộc tính này được liệt kê và cách nhau bằng dấu phẩy.
+
+Sử dụng phương thức xác thực bằng khóa công bất cứ khi nào có thể.
+
+	PubkeyAuthentication yes
+	AuthorizedKeysFile      .ssh/authorized_keys
+
+Mặc định khi cấu hình thường là sử dụng file ``.ssh/authorzied_keys'' để lưu giữ khóa công. Bạn có thể biết hay thay đổi tên này trong tệp tin cấu hình. Mỗi user sẽ có một file này trong thư mục home của mình. Nếu có nhiều khóa công thì bạn chỉ cần nối thêm vào tệp tin này:
+
+	$ cat new_pub_key  >> .ssh/authorized_keys
+
+Cập nhật các miếng vá an ninh: Thực ra thì phần lớn máy tính đều chạy một hệ điều hành cụ thể nên chỉ cần cập nhật thường xuyên là được.
+
+Chỉ sử dụng các thuật toán mã hóa có tính an toàn cao
+Openssh hỗ trợ các thuật toán sau: des-cbc, aes128-cbc, aes192-cbc, aes256-cbc, aes128-ctr, aes192-ctr, aes256-ctr, arcfour128, arcfour256, arcfour, blowfish-cbc, và cast128-cbc.
+
+[NOTE]
+Bạn cần phải khởi động lại sshd để các cài đặt mới có hiệu lực.
+
+	$ sudo /etc/init.d/ssh restart
+	# hoặc là:
+	$ sudo service sshd restart
+

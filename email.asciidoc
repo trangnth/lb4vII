@@ -30,7 +30,8 @@ Tắt dịch vụ sendmail và không cho nó khởi động cùng hệ điều 
 
  $ sudo service sendmail stop
  $ sudo chkconfig sendmail off
- $ sudo update-rc.d -f sendmail remove # họ Debian
+ $ sudo update-rc.d -f sendmail remove # họ Debian cũ
+ $ sudo systemctl disable sendmail    # systemd
 
 Cũng có thể gỡ bỏ nó đi:
 
@@ -103,14 +104,14 @@ Tiếp theo là cấu hình việc xác thực. Dùng lệnh postconf như trên
 	smtpd_sasl_path = private/auth
 
 
-Ở đây mỗi tài khải email sẽ ứng với một tài khoản user trên linux và thư mục chứa mail sẽ là /home/tentaikhoan/Maildir
+Ở đây mỗi tài khoản email sẽ ứng với một tài khoản user trên linux và thư mục chứa mail sẽ là /home/tentaikhoan/Maildir
 
 
 Cũng giống như Postfix, cũng có ứng dụng dòng lệnh cho việc cấu hình Dovecot
 
 	$ sudo doveconf -n
 
-Tiếp tục mở file cấu hình về chứng thực của Dovecot /etc/conf.d/auth-system.conf.ext thêm hoặc chỉnh sửa như sau:
+Tiếp tục mở file cấu hình về chứng thực của Dovecot ``/etc/conf.d/auth-system.conf.ext'' thêm hoặc chỉnh sửa như sau:
 
 	auth default {
 	mechanisms = plain login
@@ -133,18 +134,16 @@ Tiếp tục mở file cấu hình về chứng thực của Dovecot /etc/conf.d
 	}
 	}
 
-Có thể xem thêm tại http://wiki2.dovecot.org/QuickConfiguration[QuickConfiguration]. Hay xem trang tra cứu của từng gói:
+Có thể xem thêm tại http://wiki2.dovecot.org/QuickConfiguration[Cấu hình nhanh]. Hay xem trang tra cứu của từng gói:
 
 	$ rpm -ql postfix | grep man5
 	$ dpkg -L dovecot | grep man5 # Debian
 
 Và bước cuối cùng là khởi động lại dịch vụ:
 
-	$ sudo systemctl restat postfix # fedora
-	$ sudo systemctl restat dovecot
-
-	$ sudo service postfix restart # Debian cũ
-	$ sudo service dovecot restart
+	$ sudo systemctl restart postfix # fedora
+	$ sudo service postfix restart   # Debian cũ
+	$ sudo systemctl restart dovecot # Khởi động dovecote
 
 ==== Gỡ lỗi
 
@@ -188,7 +187,7 @@ Làm tương tự với dịch vụ *dovecot*.
 	$ postconf -n
 	$ doveconf -n
 
-=== Sử dụng webmail
+=== Dùng thư điện tử trên nền web ===
 
 Có một số ứng dụng miễn phí mà bạn có thể cài đặt để duyệt thư trên trình duyệt Web.
 
@@ -220,13 +219,13 @@ qua ssh, bằng các lệnh cơ bản như:
 
 * http://www.postfix.org/[Trang chủ Postfix]
 * http://wiki2.dovecot.org/HowTo
-* https://help.ubuntu.com/community/Postfix
-* https://help.ubuntu.com/community/Dovecot
+* https://workaround.org/ispmail/jessie/big-picture[Giải thích tổng thể bức tranh về nhận và gửi thư]
+* Trợ giúp của Ubuntu về https://help.ubuntu.com/community/Postfix[Postfix] và https://help.ubuntu.com/community/Dovecot[Dovecot]
 * http://wiki.centos.org/HowTos/postfix
 * http://docs.fedoraproject.org/en-US/Fedora/14/html/Deployment_Guide/ch-email.html
 * http://www.vmadmin.co.uk/linux/44-redhat/142-dovecotinstall
-* https://www.digitalocean.com/community/articles/how-to-set-up-a-postfix-e-mail-server-with-dovecot[How To Set Up a Postfix E-Mail Server with Dovecot]
-* https://www.digitalocean.com/community/tutorials/how-to-configure-a-mail-server-using-postfix-dovecot-mysql-and-spamassassin[How To Configure a Mail Server Using Postfix, Dovecot, MySQL, and SpamAssassin]
+* Trên Digitalocean https://www.digitalocean.com/community/articles/how-to-set-up-a-postfix-e-mail-server-with-dovecot[How To Set Up a Postfix E-Mail Server with Dovecot] và https://www.digitalocean.com/community/tutorials/how-to-configure-a-mail-server-using-postfix-dovecot-mysql-and-spamassassin[How To Configure a Mail Server Using Postfix, Dovecot, MySQL, and SpamAssassin]
+* https://www.linode.com/docs/email/postfix/email-with-postfix-dovecot-and-mysql[Email with Postfix, Dovecot, and MySQL]
 * http://ngorua.wordpress.com/2011/12/08/cai-d%E1%BA%B7t-mail-server-tren-centos-dung-postfix-dovecot/[mail-server-tren-centos-dung-postfix-dovecot]
 * http://goccay.vn/showthread.php?662-Cai-dat-mail-server-voi-Postfix[Cai-dat-mail-server-voi-Postfix]
 * https://www.linux.com/learn/tutorials/308917-install-and-configure-a-postfix-mail-server[Install and Configure a Postfix Mail Server]
